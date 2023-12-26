@@ -5,7 +5,7 @@
 #
 # roland@simplify.ee
 #
-# Version 1.0.0
+# Version 1.0.1
 # 
 # Roland Pihlakas licenses this file to you under the GNU Lesser General Public License, ver 2.1.
 # See the LICENSE file for more information.
@@ -14,7 +14,6 @@
 import os
 import sys
 import time
-from random import randint
 import struct
 
 
@@ -36,13 +35,15 @@ else:   #/ if len(sys.argv) >= 3:
   print('')
   print('Raw disk clone tool')
   print('')
-  print('A free and open-source raw disk clone tool written in Python. It creates a full sector by sector copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent.')
+  print('A free and open-source raw disk clone tool written in Python. It creates a direct sector by sector block copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent.')
   print('')
   print('Use this tool when you are running on a server OS and do not want to pay for commercial tools. The operation mechanism of this tool is very simple and straightforward.')
   print('')
+  print('It is also helpful in cases where your alternative tool would stop working upon encountering bad sectors. Some commercial disk clone dools cannot handle bad sectors for some reason.')
+  print('')
   print('Note: You cannot use this tool to clone the active OS disk since it assumes the source disk is made readonly before cloning starts.')
   print('')
-  print('INSPECT THE SOURCE CODE, UNDERSTAND WHAT IT DOES AND VERIFY THAT THE CODE IS CORRECT, AND THEN USE WITH CARE. I AM NOT RESPONSIBLE IN ANY WAY IF YOU LOSE YOUR DATA.')
+  print('INSPECT THE SOURCE CODE, UNDERSTAND WHAT IT DOES AND VERIFY THAT THE CODE IS CORRECT. THEN USE WITH CARE. I AM NOT RESPONSIBLE IN ANY WAY IF YOU LOSE YOUR DATA. ALL DATA ON DESTINATION DISK WILL BE OVERWRITTEN.')
   print('')
   print('')
   print('Usage:')
@@ -61,7 +62,7 @@ else:   #/ if len(sys.argv) >= 3:
   print(' - pywin32 (under Windows OS only)')
   print('')
   print('')
-  print('Version 1.0.0')
+  print('Version 1.0.1')
   print('Copyright: Roland Pihlakas, 2023, roland@simplify.ee')
   print('Licence: LGPL 2.1')
   print('You can obtain a copy of this free software from https://github.com/levitation-opensource/DiskClone/')
@@ -148,7 +149,7 @@ if os.name == "nt":
 print("")
 print("")
 print("WARNING!!! ALL DATA ON DISK {} WILL BE OVERWRITTEN.".format(dest_disk_name))
-print("TYPE 'YES' AND PRESS ENTER TO CONTINUE OR PRESS CTRL+C TO CANCEL:")
+print("TYPE 'YES' AND PRESS ENTER TO CONTINUE, OR PRESS CTRL+C TO CANCEL:")
 confirmation = input()
 if confirmation != "YES":
   quit()
@@ -236,11 +237,10 @@ if src_precise_capacity > dest_precise_capacity:
 with open(src_disk_name, 'rb', buffering=0) as src_f:
   with open(dest_disk_name, 'r+b', buffering=0) as dest_f:
 
-    print("src_precise_capacity: " + str(src_precise_capacity))
+    print("Source disk precise capacity: " + str(src_precise_capacity))
     src_capacity = src_precise_capacity 
     dest_capacity = dest_precise_capacity 
 
-    # divide by 4M and then find next power of two
     step = 256 * 1024
   
     idle_step = 4 * 1024 * 1024
@@ -252,7 +252,8 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
 
     mb = 1024 * 1024
 
-    start_offset = 0
+    start_offset = 0    # You may want to modify this start offset in special cases. Then the disk clone tool will read the sectors startin from start_offset first. Later the disk clone tool will loop over to the very beginning of the disk and read the initially skipped beginning part of the disk, until start_offset.
+
     # f.seek(offset=start_offset, whence=0)   # whence=0 means absolute file positioning
     # Many Python built-in functions accept no keyword arguments
     src_f.seek(start_offset, 0)   # whence=0 means absolute file positioning
@@ -264,10 +265,11 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
     while True:
 
       if abs(i - prev_i) >= mb:   # NB! handle cases when offset was changed in 512 byte increments
-        print('{} MB cloned, offset {}, percent {:.3f}%'.format(int(total_bytes_read / mb), (start_offset + i) % src_capacity, total_bytes_read / src_capacity * 100))
+        print('{} MB cloned, offset {}, percent {:.3f}%'.format(int(total_bytes_read / mb), start_offset + i, total_bytes_read / src_capacity * 100))
         prev_i = i
       
-      try:
+      # pause cloning while on battery power
+      try:  
         while psutil.sensors_battery() and not psutil.sensors_battery().power_plugged:   # NB! psutil.sensors_battery() may be None if there is no battery
           time.sleep(1)
       except Exception:
@@ -276,6 +278,7 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
 
       try:
 
+        # Loop over to drive beginning in case the cloning was started from a nonzero offset. When using default start_offset=0 this code branch here will not activate.
         if start_offset + i >= src_capacity:
           start_offset = 0
           i = 0
@@ -303,9 +306,7 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
 
       except Exception as msg:
               
-        # NB! step by one sector increments until no more errors are encountered in order to detect any further bad sectors immediately after the first one
-
-        # NB! If bad sector is encountered, try to read in a 512 byte step increments, only if a read fails in an iteration during this loop of 512-byte increments then seek past the failing sector. The rationale is that maybe the read error from above code occurred in some later sector than the first 512 bytes.
+        # NB! If a bad sector is encountered, try to read in 512 byte step increments. If a read fails in an iteration during this loop of 512-byte increments, then seek past the failing sector. The rationale is that maybe the read error from above code occurred in some later sector than the first 512 bytes. Just skipping the first 512 bytes and then reading full current_step bytes would not be correct and would not work.
 
         for _ in range(0, current_step, 512): # read the amount of current_step bytes in 512 byte increments
           try:
@@ -317,10 +318,7 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
 
           except Exception as msg:
 
-            if start_offset + i < src_precise_capacity:
-              print("Error cloning disk at offset " + str((start_offset + i) % src_capacity) + " : " + str(msg))
-            else:
-              break
+            print("Error cloning disk at offset " + str(start_offset + i) + " : " + str(msg))
 
             i += 512
             total_bytes_read += 512
@@ -333,6 +331,7 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
       if total_bytes_read >= src_capacity:
         break
 
+      # Yield to OS in case there are other processes that need CPU. If the system load is low, then OS will return to this script almost immediately.
       time.sleep(0)
 
     #/ while True:
