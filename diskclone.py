@@ -39,7 +39,7 @@ else:   #/ if len(sys.argv) >= 3:
   print('')
   print('Use this tool when you are running on a server OS and do not want to pay for commercial tools. The operation mechanism of this tool is very simple and straightforward.')
   print('')
-  print('It is also helpful in cases where your alternative tool would stop working upon encountering bad sectors. Some commercial disk clone dools cannot handle bad sectors for some reason.')
+  print('It is also helpful in cases where your alternative tool would stop working upon encountering bad sectors. Some commercial disk clone tools cannot handle bad sectors for some reason.')
   print('')
   print('Note: You cannot use this tool to clone the active OS disk since it assumes the source disk is made readonly before cloning starts.')
   print('')
