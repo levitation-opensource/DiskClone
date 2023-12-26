@@ -36,7 +36,7 @@ else:   #/ if len(sys.argv) >= 3:
   print('')
   print('Raw disk clone tool')
   print('')
-  print('Disk clone tool written in Python. It creates a full sector by sector copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent.')
+  print('A Raw disk clone tool written in Python. It creates a full sector by sector copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent.')
   print('')
   print('Use this tool when you are running on a server OS and do not want to pay for commercial tools. The operation mechanism of this tool is very simple and straightforward.')
   print('')
@@ -303,18 +303,32 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
 
       except Exception as msg:
 
-        if start_offset + i < src_precise_capacity:
-          print("Error cloning disk at offset " + str((start_offset + i) % src_capacity) + " : " + str(msg))
-
       
         # NB! step by one sector increments until no more errors are encountered in order to detect any further bad sectors immediately after the first one
-      
-        i += 512
-        total_bytes_read += 512
-        # f.seek(offset=512, whence=1)   # skip the bad sector   # whence=1 means seek relative to the current position
-        # Many Python built-in functions accept no keyword arguments
-        src_f.seek(512, 1)   # skip the bad sector   # whence=1 means seek relative to the current position
-        dest_f.seek(512, 1)   # skip the bad sector   # whence=1 means seek relative to the current position
+
+        # NB! If bad sector is encountered, try to read in a 512 byte step increments, only if a read fails in an iteration during this loop of 512-byte increments then seek past the failing sector. The rationale is that maybe the read error from above code occurred in some later sector than the first 512 bytes.
+
+        for _ in range(0, current_step, 512): # read the amount of current_step bytes in 512 byte increments
+          try:
+            data = src_f.read(512)      
+            dest_f.write(data)
+
+            i += 512
+            total_bytes_read += 512
+
+          except Exception as msg:
+
+            if start_offset + i < src_precise_capacity:
+              print("Error cloning disk at offset " + str((start_offset + i) % src_capacity) + " : " + str(msg))
+            else:
+              break
+
+            i += 512
+            total_bytes_read += 512
+            # f.seek(offset=512, whence=1)   # skip the bad sector   # whence=1 means seek relative to the current position
+            # Many Python built-in functions accept no keyword arguments
+            src_f.seek(512, 1)   # skip the bad sector   # whence=1 means seek relative to the current position
+            dest_f.seek(512, 1)   # skip the bad sector   # whence=1 means seek relative to the current position
 
 
       if total_bytes_read >= src_capacity:
