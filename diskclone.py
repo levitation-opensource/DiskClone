@@ -36,7 +36,7 @@ else:   #/ if len(sys.argv) >= 3:
   print('')
   print('Raw disk clone tool')
   print('')
-  print('A Raw disk clone tool written in Python. It creates a full sector by sector copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent.')
+  print('A free and open-source raw disk clone tool written in Python. It creates a full sector by sector copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent.')
   print('')
   print('Use this tool when you are running on a server OS and do not want to pay for commercial tools. The operation mechanism of this tool is very simple and straightforward.')
   print('')
@@ -148,7 +148,7 @@ if os.name == "nt":
 print("")
 print("")
 print("WARNING!!! ALL DATA ON DISK {} WILL BE OVERWRITTEN.".format(dest_disk_name))
-print("TYPE 'YES' AND PRESS ENTER TO CONTINUE OR PRESS CTRL+C TO CANCEL")
+print("TYPE 'YES' AND PRESS ENTER TO CONTINUE OR PRESS CTRL+C TO CANCEL:")
 confirmation = input()
 if confirmation != "YES":
   quit()
@@ -169,7 +169,7 @@ else:
   print("sudo hdparm -F -r1 {}".format(src_disk_name))
   print("sudo wipefs -a {}".format(dest_disk_name))
 print("")
-print("Press enter to continue")
+print("PRESS ENTER TO CONTINUE:")
 dummy = input()
 print("")
 
@@ -302,8 +302,7 @@ with open(src_disk_name, 'rb', buffering=0) as src_f:
         total_bytes_read += current_step
 
       except Exception as msg:
-
-      
+              
         # NB! step by one sector increments until no more errors are encountered in order to detect any further bad sectors immediately after the first one
 
         # NB! If bad sector is encountered, try to read in a 512 byte step increments, only if a read fails in an iteration during this loop of 512-byte increments then seek past the failing sector. The rationale is that maybe the read error from above code occurred in some later sector than the first 512 bytes.
@@ -353,7 +352,7 @@ if os.name == "nt":
 else:
   print("sudo hdparm -r0 {}".format(src_disk_name))
 print("")
-print("Press enter to continue")
+print("Press enter to continue:")
 dummy = input()
 print("")
 

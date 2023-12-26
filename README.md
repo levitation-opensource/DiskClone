@@ -1,6 +1,6 @@
 ### Raw disk clone tool
 
-A Raw disk clone tool written in Python. It creates a full sector by sector copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent. 
+A free and open-source raw disk clone tool written in Python. It creates a full sector by sector copy. It is able to skip bad sectors. No filesystem inspection is involved, so it is filesystem independent. 
 
 Use this tool when you are running on a server OS and do not want to pay for commercial tools. The operation mechanism of this tool is very simple and straightforward.
 
