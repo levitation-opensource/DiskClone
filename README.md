@@ -16,7 +16,7 @@ INSPECT THE SOURCE CODE, UNDERSTAND WHAT IT DOES AND VERIFY THAT THE CODE IS COR
 python diskclone.py SourceDisk DestinationDisk
 <br>
 <br>Under Windows:
-<br>python diskclone.py "\\.\PhysicalDrive0" "\\.\PhysicalDrive1"
+<br>python diskclone.py "\\\\.\\PhysicalDrive0" "\\\\.\\PhysicalDrive1"
 <br>or
 <br>Under Linux:
 <br>python diskclone.py "/dev/ploop12345" "/dev/ploop67890"
